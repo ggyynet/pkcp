@@ -12,8 +12,8 @@ typedef struct {
     PyObject *udata;
     int minrto;
     int fastresend;
-    int MAX_RECV_SIZE;
     uintptr_t current_mesc;
+    int MAX_RECV_SIZE;
 } pkcp_t;
 
 static uintptr_t current_msec_update() {
@@ -33,14 +33,9 @@ static int output_callback(const char *buf, int len, ikcpcb *kcp, void *user) {
     printf("output_callback\n");
 #endif
     pkcp_t *self = (pkcp_t *) user;
-    PyObject *buffer = Py_BuildValue("y#", buf, len), *py_args, *py_result;
-    py_args = PyTuple_New(2);
-    PyTuple_SetItem(py_args, 0, buffer);
-    PyTuple_SetItem(py_args, 1, self->udata);
-    Py_INCREF(py_args);
-//    Py_BEGIN_ALLOW_THREADS
+    PyObject *py_args = NULL, *py_result = NULL;
+    py_args = Py_BuildValue("(y#,O)", buf, len, self->udata);
     py_result = PyObject_CallObject(self->output_callback, py_args);
-//    Py_END_ALLOW_THREADS
     Py_DECREF(py_args);
     if (py_result != NULL) {
         Py_DECREF(py_result);
@@ -55,17 +50,11 @@ static int pkcp_traverse(pkcp_t *self, visitproc visit, void *arg) {
 #ifdef PKCP_DEBUG
     printf("pkcp_traverse\n");
 #endif
-    int vret;
-    if (self->output_callback) {
-        vret = visit(self->output_callback, arg);
-        if (vret != 0)
-            return vret;
-    }
-    if (self->udata) {
-        vret = visit(self->udata, arg);
-        if (vret != 0)
-            return vret;
-    }
+    Py_VISIT(self->output_callback);
+    Py_VISIT(self->udata);
+#ifdef PKCP_DEBUG
+    printf("pkcp_traverse end\n");
+#endif
     return 0;
 }
 
