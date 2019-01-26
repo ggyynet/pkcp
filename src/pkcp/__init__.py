@@ -39,6 +39,9 @@ class Pkcp:
             p.fastresend = 1
         self._p = p
 
+    def setmtu(self, mtu: int) -> None:
+        self._p.setmtu(mtu)
+
     def nodelay(self, nodelay: int, interval: int, resend: int, nc: int) -> None:
         self._p.nodelay(nodelay, interval, resend, nc)
 

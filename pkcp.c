@@ -124,6 +124,17 @@ static PyObject *pkcp_wndsize(pkcp_t *self, PyObject *args, PyObject *keywds) {
     Py_RETURN_NONE;
 }
 
+
+static PyObject *pkcp_setmtu(pkcp_t *self, PyObject *args, PyObject *keywds) {
+    int mtu;
+    if (!PyArg_ParseTuple(args, "i", &mtu)) {
+        PyErr_SetString(PyExc_ValueError, "args error, setmtu(mtu)");
+        Py_RETURN_NONE;
+    }
+    ikcp_setmtu(self->kcp, mtu);
+    Py_RETURN_NONE;
+}
+
 static PyObject *pkcp_nodelay(pkcp_t *self, PyObject *args, PyObject *keywds) {
     PyObject *nodelay = NULL, *interval = NULL, *resend = NULL, *nc = NULL;
     if (!PyArg_ParseTuple(args, "iiii", &nodelay, &interval, &resend, &nc)) {
@@ -182,7 +193,7 @@ static PyObject *pkcp_recv(pkcp_t *self, PyObject *args, PyObject *keywds) {
     printf("pkcp_recv end\n");
 #endif
     // build bytes
-    return Py_BuildValue("s#", buffer, count);
+    return Py_BuildValue("y#", buffer, count);
 }
 
 static PyObject *pkcp_send(pkcp_t *self, PyObject *args, PyObject *keywds) {
@@ -194,7 +205,8 @@ static PyObject *pkcp_send(pkcp_t *self, PyObject *args, PyObject *keywds) {
     if (!PyArg_ParseTuple(args, "s#", &data, &size)) {
         Py_RETURN_NONE;
     }
-    ikcp_send(self->kcp, data, (int) size);
+    int ret = ikcp_send(self->kcp, data, (int) size);
+    printf("send ret:%d\n", ret);
 #ifdef PKCP_DEBUG
     printf("pkcp_send end\n");
 #endif
@@ -203,6 +215,7 @@ static PyObject *pkcp_send(pkcp_t *self, PyObject *args, PyObject *keywds) {
 
 
 static PyMethodDef pkcp_methods[] = {
+        {"setmtu",  (PyCFunction) pkcp_setmtu,  METH_VARARGS, "ikcp_setmtu"},
         {"nodelay", (PyCFunction) pkcp_nodelay, METH_VARARGS, "ikcp_nodelay"},
         {"wndsize", (PyCFunction) pkcp_wndsize, METH_VARARGS, "ikcp_wndsize"},
         {"input",   (PyCFunction) pkcp_input,   METH_VARARGS, "ikcp_input"},
@@ -264,7 +277,7 @@ static PyGetSetDef pkcp_getseters[] = {
 /////////////// members ///////////////
 static PyMemberDef pkcp_members[] = {
 //        {"minrto",           T_INT,       offsetof(pkcp_t, minrto),          READONLY, "first name"},
-        {"MAX_RECV_SIZE",   T_INT,       offsetof(pkcp_t, MAX_RECV_SIZE), 0,          "attr MAX_RECV_SIZE"},
+        {"MAX_RECV_SIZE",   T_INT,       offsetof(pkcp_t, MAX_RECV_SIZE),   0,        "attr MAX_RECV_SIZE"},
         {"output_callback", T_OBJECT_EX, offsetof(pkcp_t, output_callback), READONLY, "attr output_callback"},
         {"conv",            T_INT,       offsetof(pkcp_t, conv),            READONLY, "attr conv"},
         {"udata",           T_OBJECT_EX, offsetof(pkcp_t, udata),           READONLY, "attr udata"},
@@ -277,7 +290,7 @@ static PyTypeObject pkcpType = {
         "pkcp.pkcp",                        /* tp_name */
         sizeof(pkcp_t),                     /* tp_basicsize */
         0,                                  /* tp_itemsize */
-        (destructor) pkcp_dealloc,          /* tp_dealloc */
+(destructor) pkcp_dealloc,          /* tp_dealloc */
         0,                                  /* tp_print */
         0,                                  /* tp_getattr */
         0,                                  /* tp_setattr */
@@ -296,8 +309,8 @@ static PyTypeObject pkcpType = {
         Py_TPFLAGS_BASETYPE |
         Py_TPFLAGS_HAVE_GC,                 /* tp_flags */
         "pkcp Class",                       /* tp_doc */
-        (traverseproc) pkcp_traverse,       /* tp_traverse */
-        (inquiry) pkcp_clear,               /* tp_clear */
+(traverseproc) pkcp_traverse,       /* tp_traverse */
+(inquiry) pkcp_clear,               /* tp_clear */
         0,                                  /* tp_richcompare */
         0,                                  /* tp_weaklistoffset */
         0,                                  /* tp_iter */
@@ -310,7 +323,7 @@ static PyTypeObject pkcpType = {
         0,                                  /* tp_descr_get */
         0,                                  /* tp_descr_set */
         0,                                  /* tp_dictoffset */
-        (initproc) pkcp_init,               /* tp_init */
+(initproc) pkcp_init,               /* tp_init */
         0,                                  /* tp_alloc */
         pkcp_new,                           /* tp_new */
 };
@@ -334,6 +347,6 @@ PyMODINIT_FUNC PyInit__pkcp(void) {
         return NULL;
 
     Py_INCREF(&pkcpType);
-    PyModule_AddObject(m, "pkcp", (PyObject *) &pkcpType);
+    PyModule_AddObject(m, "pkcp", (PyObject * ) & pkcpType);
     return m;
 }
