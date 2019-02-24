@@ -206,8 +206,8 @@ static PyObject *pkcp_send(pkcp_t *self, PyObject *args, PyObject *keywds) {
         Py_RETURN_NONE;
     }
     int ret = ikcp_send(self->kcp, data, (int) size);
-    printf("send ret:%d\n", ret);
 #ifdef PKCP_DEBUG
+    printf("send ret:%d\n", ret);
     printf("pkcp_send end\n");
 #endif
     Py_RETURN_NONE;
